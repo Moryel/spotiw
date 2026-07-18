@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode / Swift
+.build/
+.swiftpm/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcuserstate
+*.xcbkptlist
+*.xcscheme
+*.xcscmblueprint
+
+# Build artifacts
+*.o
+*.d
+*.swiftmodule
+*.swiftdoc
+*.dSYM
+*.app
+*.framework
+*.bundle
+*.ipa
+*.deb
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+
+# Pock widget build outputs
+*.pock/Contents/MacOS/

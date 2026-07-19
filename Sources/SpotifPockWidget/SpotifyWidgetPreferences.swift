@@ -13,9 +13,10 @@ public final class SpotifyWidgetPreferences: NSViewController, PKWidgetPreferenc
     private let resetButton = NSButton(title: "Reset", target: nil, action: nil)
     private let sensitivitySlider = NSSlider(value: 1.0, minValue: 0.5, maxValue: 3.0, target: nil, action: nil)
     private let speedSlider = NSSlider(value: 1.0, minValue: 0.5, maxValue: 2.0, target: nil, action: nil)
+    private let animationDurationSlider = NSSlider(value: 0.12, minValue: 0.05, maxValue: 0.5, target: nil, action: nil)
 
     public override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 320, height: 190))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 320, height: 230))
         setupView()
         loadSettings()
     }
@@ -50,6 +51,8 @@ public final class SpotifyWidgetPreferences: NSViewController, PKWidgetPreferenc
         sensitivitySlider.action = #selector(updateSettings)
         speedSlider.target = self
         speedSlider.action = #selector(updateSettings)
+        animationDurationSlider.target = self
+        animationDurationSlider.action = #selector(updateSettings)
         resetButton.target = self
         resetButton.action = #selector(resetSettings)
 
@@ -60,6 +63,7 @@ public final class SpotifyWidgetPreferences: NSViewController, PKWidgetPreferenc
         stack.addArrangedSubview(makeRow(label: "Album art", control: albumArtworkButton))
         stack.addArrangedSubview(makeRow(label: "Sensitivity", control: sensitivitySlider))
         stack.addArrangedSubview(makeRow(label: "Speed", control: speedSlider))
+        stack.addArrangedSubview(makeRow(label: "Animation", control: animationDurationSlider))
         stack.addArrangedSubview(resetButton)
 
         view.addSubview(stack)
@@ -93,6 +97,7 @@ public final class SpotifyWidgetPreferences: NSViewController, PKWidgetPreferenc
         albumArtworkButton.state = settings.showAlbumArtwork ? .on : .off
         sensitivitySlider.doubleValue = settings.equalizerSensitivity
         speedSlider.doubleValue = settings.equalizerSpeed
+        animationDurationSlider.doubleValue = settings.equalizerAnimationDuration
     }
 
     @objc private func updateSettings() {
@@ -107,7 +112,8 @@ public final class SpotifyWidgetPreferences: NSViewController, PKWidgetPreferenc
             buttonStyle: ControlButtonStyle.allCases[buttonStyleIndex],
             showAlbumArtwork: albumArtworkButton.state == .on,
             equalizerSensitivity: sensitivitySlider.doubleValue,
-            equalizerSpeed: speedSlider.doubleValue
+            equalizerSpeed: speedSlider.doubleValue,
+            equalizerAnimationDuration: animationDurationSlider.doubleValue
         )
     }
 

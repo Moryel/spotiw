@@ -22,6 +22,12 @@ public class EqualizerView: NSView {
             restartTimerIfNeeded()
         }
     }
+    /// animation duration in seconds for bar height transitions
+    public var animationDuration: CGFloat = 0.12 {
+        didSet {
+            if animationDuration <= 0 { animationDuration = 0.12 }
+        }
+    }
 
     public var style: EqualizerStyle = .bars {
         didSet {
@@ -131,7 +137,7 @@ public class EqualizerView: NSView {
     private func updateBars(animated: Bool, targetHeightRatio: CGFloat? = nil) {
         guard !bars.isEmpty, bounds.height > 0 else { return }
         CATransaction.begin()
-        CATransaction.setAnimationDuration(animated ? 0.12 : 0.0)
+        CATransaction.setAnimationDuration(animated ? Double(animationDuration) : 0.0)
 
         for (index, bar) in bars.enumerated() {
             // determine target ratio

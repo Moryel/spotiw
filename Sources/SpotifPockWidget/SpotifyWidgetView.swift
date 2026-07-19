@@ -214,6 +214,7 @@ end tell
         equalizerView.accentColor = settings.accentColor.color
         equalizerView.sensitivity = CGFloat(settings.equalizerSensitivity)
         equalizerView.speed = CGFloat(settings.equalizerSpeed)
+        equalizerView.animationDuration = CGFloat(settings.equalizerAnimationDuration)
         controlButtons.forEach { button in
             applyButtonStyle(button, style: settings.buttonStyle)
         }
@@ -357,19 +358,34 @@ tell application "System Events" to return (name of processes) contains "Spotify
             return
         }
 
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("spotify-artwork-").appendingPathExtension("png")
-        let script = """
+        DispatchQueue.global(qos: .utility).async {
+            var finalImage: NSImage? = nil
+            var finalPalette: [NSColor] = []
+
+            // Try method 1: Use Spotify cache directly
+            if finalImage == nil {
+                finalImage = self.loadArtworkFromSpotifyCache()
+            }
+
+            // Try method 2: Try AppleScript as fallback (might work on some systems)
+            if finalImage == nil {
+                let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("spotify-artwork-\(UUID().uuidString)").appendingPathExtension("png")
+                let script = """
 tell application "Spotify"
     if it is running then
         try
             set artData to artwork data of current track
-            set outPath to POSIX path of "#TEMP_PATH#"
-            set outFile to open for access POSIX file outPath with write permission
-            set eof outFile to 0
-            write artData to outFile
-            close access outFile
-            return outPath
-        on error
+            if artData is not missing value then
+                set outPath to POSIX path of "#TEMP_PATH#"
+                set outFile to open for access POSIX file outPath with write permission
+                set eof outFile to 0
+                write artData to outFile
+                close access outFile
+                return outPath
+            else
+                return ""
+            end if
+        on error errMsg
             return ""
         end try
     else
@@ -378,19 +394,28 @@ tell application "Spotify"
 end tell
 """.replacingOccurrences(of: "#TEMP_PATH#", with: tempURL.path)
 
-        DispatchQueue.global(qos: .utility).async {
-            let savedPath = self.runAppleScript(script)
-            let fileURL = URL(fileURLWithPath: savedPath)
-
-            var finalPalette: [NSColor] = []
-            var finalImage: NSImage? = nil
-
-            if FileManager.default.fileExists(atPath: fileURL.path) {
-                if let data = try? Data(contentsOf: fileURL), !data.isEmpty {
-                    finalImage = NSImage(data: data)
-                    if self.currentSettings.useArtworkColors {
-                        finalPalette = ArtworkColorExtractor.palette(from: data, count: 7)
+                let savedPath = self.runAppleScript(script)
+                if !savedPath.isEmpty {
+                    let fileURL = URL(fileURLWithPath: savedPath)
+                    if FileManager.default.fileExists(atPath: fileURL.path) {
+                        if let data = try? Data(contentsOf: fileURL), !data.isEmpty {
+                            finalImage = NSImage(data: data)
+                            if self.currentSettings.useArtworkColors {
+                                finalPalette = ArtworkColorExtractor.palette(from: data, count: 7)
+                            }
+                            // Clean up temp file
+                            try? FileManager.default.removeItem(at: fileURL)
+                        }
                     }
+                }
+            }
+
+            // Extract palette from image if we have it
+            if finalImage != nil && self.currentSettings.useArtworkColors && finalPalette.isEmpty {
+                if let tiffData = finalImage?.tiffRepresentation,
+                   let bitmap = NSBitmapImageRep(data: tiffData),
+                   let pngData = bitmap.representation(using: .png, properties: [:]) {
+                    finalPalette = ArtworkColorExtractor.palette(from: pngData, count: 7)
                 }
             }
 
@@ -415,6 +440,43 @@ end tell
                 }
             }
         }
+    }
+
+    private func loadArtworkFromSpotifyCache() -> NSImage? {
+        let cacheBasePath = NSHomeDirectory() + "/Library/Caches/Spotify"
+        let spotifyDataPath = NSHomeDirectory() + "/Library/Application Support/Spotify"
+
+        // Try common Spotify cache locations
+        let searchPaths = [
+            cacheBasePath + "/Browser",
+            cacheBasePath,
+            spotifyDataPath + "/PersistentCache/Volume_0"
+        ]
+
+        for basePath in searchPaths {
+            guard FileManager.default.fileExists(atPath: basePath) else { continue }
+
+            // Look for image files (artwork is typically stored as binary data or image files)
+            do {
+                let contents = try FileManager.default.contentsOfDirectory(atPath: basePath)
+                for file in contents {
+                    let fullPath = (basePath as NSString).appendingPathComponent(file)
+                    var isDir: ObjCBool = false
+                    if FileManager.default.fileExists(atPath: fullPath, isDirectory: &isDir), !isDir.boolValue {
+                        // Try to load as image
+                        if let imageData = try? Data(contentsOf: URL(fileURLWithPath: fullPath)),
+                           imageData.count > 1000,  // Filter out very small files
+                           let image = NSImage(data: imageData) {
+                            return image
+                        }
+                    }
+                }
+            } catch {
+                continue
+            }
+        }
+
+        return nil
     }
 
     private func runSpotifyCommand(_ command: String) {

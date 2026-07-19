@@ -83,6 +83,7 @@ public struct SpotifyWidgetSettings: Equatable {
     public var showAlbumArtwork: Bool
     public var equalizerSensitivity: Double
     public var equalizerSpeed: Double
+    public var equalizerAnimationDuration: Double
 
     public static let defaults = SpotifyWidgetSettings(
         equalizerStyle: .bars,
@@ -92,6 +93,7 @@ public struct SpotifyWidgetSettings: Equatable {
         showAlbumArtwork: false
         , equalizerSensitivity: 1.0
         , equalizerSpeed: 1.0
+        , equalizerAnimationDuration: 0.12
     )
 }
 
@@ -110,6 +112,7 @@ public final class SpotifyWidgetSettingsStore {
         static let showAlbumArtwork = "showAlbumArtwork"
         static let equalizerSensitivity = "equalizerSensitivity"
         static let equalizerSpeed = "equalizerSpeed"
+        static let equalizerAnimationDuration = "equalizerAnimationDuration"
     }
 
     private let defaults = UserDefaults(suiteName: "com.yuksel.spotiw") ?? .standard
@@ -126,6 +129,7 @@ public final class SpotifyWidgetSettingsStore {
                 showAlbumArtwork: defaults.object(forKey: Key.showAlbumArtwork) as? Bool ?? SpotifyWidgetSettings.defaults.showAlbumArtwork
                 , equalizerSensitivity: defaults.object(forKey: Key.equalizerSensitivity) as? Double ?? SpotifyWidgetSettings.defaults.equalizerSensitivity
                 , equalizerSpeed: defaults.object(forKey: Key.equalizerSpeed) as? Double ?? SpotifyWidgetSettings.defaults.equalizerSpeed
+                , equalizerAnimationDuration: defaults.object(forKey: Key.equalizerAnimationDuration) as? Double ?? SpotifyWidgetSettings.defaults.equalizerAnimationDuration
             )
         }
         set {
@@ -136,6 +140,7 @@ public final class SpotifyWidgetSettingsStore {
             defaults.set(newValue.showAlbumArtwork, forKey: Key.showAlbumArtwork)
             defaults.set(newValue.equalizerSensitivity, forKey: Key.equalizerSensitivity)
             defaults.set(newValue.equalizerSpeed, forKey: Key.equalizerSpeed)
+            defaults.set(newValue.equalizerAnimationDuration, forKey: Key.equalizerAnimationDuration)
             NotificationCenter.default.post(name: .spotifyWidgetSettingsDidChange, object: newValue)
         }
     }

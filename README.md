@@ -17,10 +17,10 @@ sh Scripts/package-pock-widget.sh
 The installable widget is created at:
 
 ```text
-.swiftpm/xcode/swiftpm-build/release/Spotify.pock
+.swiftpm/xcode/swiftpm-build/release/Spotiw.pock
 ```
 
-Open Pock, choose the widget manager/install option, then drag `Spotify.pock` into Pock.
+Open Pock, choose the widget manager/install option, then drag `Spotiw.pock` into Pock.
 
 ## Notes
 

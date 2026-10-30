@@ -88,8 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let settings = notification.object as? SpotifyWidgetSettings,
               settings.keepControlStrip != keepControlStrip else { return }
         keepControlStrip = settings.keepControlStrip
-        // placement only takes effect when the bar is presented again
-        touchBarController.present()
+        touchBarController.representWithCurrentSettings()
     }
 }
 

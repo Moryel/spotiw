@@ -45,6 +45,15 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         TouchBarPrivate.minimizeSystemModal(touchBar)
     }
 
+    /// The placement (full width or next to the Control Strip) is only read when the bar
+    /// comes up, so take it down first and show it again with the new setting.
+    func representWithCurrentSettings() {
+        minimize()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.present()
+        }
+    }
+
     func touchBar(_ touchBar: NSTouchBar, makeItemForIdentifier identifier: NSTouchBarItem.Identifier) -> NSTouchBarItem? {
         guard identifier == playerIdentifier else { return nil }
         let item = NSCustomTouchBarItem(identifier: identifier)

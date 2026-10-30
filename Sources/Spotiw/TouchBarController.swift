@@ -34,7 +34,10 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
     }
 
     @objc func present() {
-        let keepControlStrip = SpotifyWidgetSettingsStore.shared.settings.keepControlStrip
+        showPlayer(keepControlStrip: SpotifyWidgetSettingsStore.shared.settings.keepControlStrip)
+    }
+
+    func showPlayer(keepControlStrip: Bool) {
         let placement: Int64 = keepControlStrip ? 0 : 1
         // 13" Touch Bar: ~1000 pt in full width, the collapsed Control Strip takes ~300 pt
         // the system adds its own close box next to a bar that keeps the Control Strip
@@ -58,8 +61,13 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
 
     private func observeGlassBar() {
         let center = DistributedNotificationCenter.default()
-        center.addObserver(self, selector: #selector(present), name: .init(Self.notificationPrefix + "show"), object: nil)
+        center.addObserver(self, selector: #selector(showForGlassBar), name: .init(Self.notificationPrefix + "show"), object: nil)
         center.addObserver(self, selector: #selector(hideForGlassBar), name: .init(Self.notificationPrefix + "hide"), object: nil)
+    }
+
+    /// GlassBar has its own Control Strip, so cover the whole bar instead of showing the system one next to the player.
+    @objc private func showForGlassBar() {
+        showPlayer(keepControlStrip: false)
     }
 
     @objc private func hideForGlassBar() {

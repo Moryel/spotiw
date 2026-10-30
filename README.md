@@ -1,4 +1,6 @@
-# Spotiw
+<p align="center"><img src="images/logo.png" width="160" alt="Spotiw icon"></p>
+
+<h1 align="center">Spotiw</h1>
 
 Spotify on your MacBook Pro Touch Bar: track info, album art, playback controls,
 a draggable progress bar and an animated sound bar that takes its colors from the album cover.
@@ -115,6 +117,9 @@ sh Scripts/build-app.sh            # builds build/Spotiw.app for this Mac
 sh Scripts/build-app.sh install    # also copies it to /Applications and starts it
 sh Scripts/build-app.sh release    # universal (Intel + Apple Silicon) build and build/Spotiw.zip
 ```
+
+The app icon is drawn in code: edit `Scripts/make-icon.swift` and run `swift Scripts/make-icon.swift`
+to regenerate `Resources/AppIcon.icns` and `images/logo.png`.
 
 Coming from the Pock widget? Remove `Spotiw.pock` from Pock; your settings carry over.
 

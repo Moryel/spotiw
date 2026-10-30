@@ -8,6 +8,8 @@
     <string>Spotiw</string>
     <key>CFBundleExecutable</key>
     <string>Spotiw</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.yuksel.spotiw</string>
     <key>CFBundleInfoDictionaryVersion</key>

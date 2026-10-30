@@ -34,8 +34,9 @@ build_binary() {
 }
 
 rm -rf "$APP_DIR"
-mkdir -p "$APP_DIR/Contents/MacOS"
+mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp "$ROOT_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
+cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 
 if [ "$MODE" = "release" ]; then
     # Touch Bar Macs from 2016-2019 are Intel, the 13" M1/M2 models are Apple Silicon

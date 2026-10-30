@@ -33,3 +33,7 @@ DerivedData/
 
 # Pock widget build outputs
 *.pock/Contents/MacOS/
+
+# App build output
+build/
+*.pock/

@@ -56,6 +56,7 @@ public enum WidgetAccentColor: String, CaseIterable {
 }
 
 public enum ControlButtonStyle: String, CaseIterable {
+    case native
     case icon
     case filled
     case pill
@@ -63,6 +64,8 @@ public enum ControlButtonStyle: String, CaseIterable {
 
     var title: String {
         switch self {
+        case .native:
+            return "Touch Bar"
         case .icon:
             return "Icon"
         case .filled:
@@ -84,16 +87,26 @@ public struct SpotifyWidgetSettings: Equatable {
     public var equalizerSensitivity: Double
     public var equalizerSpeed: Double
     public var equalizerAnimationDuration: Double
+    public var showOnLaunch: Bool
+    public var keepControlStrip: Bool
+    /// points; ignored when `equalizerFullWidth` is on
+    public var equalizerWidth: Double
+    /// the bars fill the whole Touch Bar behind the controls
+    public var equalizerFullWidth: Bool
 
     public static let defaults = SpotifyWidgetSettings(
         equalizerStyle: .bars,
         accentColor: .green,
         useArtworkColors: true,
-        buttonStyle: .filled,
-        showAlbumArtwork: false
-        , equalizerSensitivity: 1.0
-        , equalizerSpeed: 1.0
-        , equalizerAnimationDuration: 0.12
+        buttonStyle: .native,
+        showAlbumArtwork: true,
+        equalizerSensitivity: 1.0,
+        equalizerSpeed: 1.0,
+        equalizerAnimationDuration: 0.12,
+        showOnLaunch: true,
+        keepControlStrip: false,
+        equalizerWidth: 46,
+        equalizerFullWidth: false
     )
 }
 
@@ -113,9 +126,13 @@ public final class SpotifyWidgetSettingsStore {
         static let equalizerSensitivity = "equalizerSensitivity"
         static let equalizerSpeed = "equalizerSpeed"
         static let equalizerAnimationDuration = "equalizerAnimationDuration"
+        static let showOnLaunch = "showOnLaunch"
+        static let keepControlStrip = "keepControlStrip"
+        static let equalizerWidth = "equalizerWidth"
+        static let equalizerFullWidth = "equalizerFullWidth"
     }
 
-    private let defaults = UserDefaults(suiteName: "com.yuksel.spotiw") ?? .standard
+    private let defaults = UserDefaults.standard
 
     private init() {}
 
@@ -126,10 +143,14 @@ public final class SpotifyWidgetSettingsStore {
                 accentColor: WidgetAccentColor(rawValue: defaults.string(forKey: Key.accentColor) ?? "") ?? SpotifyWidgetSettings.defaults.accentColor,
                 useArtworkColors: defaults.object(forKey: Key.useArtworkColors) as? Bool ?? SpotifyWidgetSettings.defaults.useArtworkColors,
                 buttonStyle: ControlButtonStyle(rawValue: defaults.string(forKey: Key.buttonStyle) ?? "") ?? SpotifyWidgetSettings.defaults.buttonStyle,
-                showAlbumArtwork: defaults.object(forKey: Key.showAlbumArtwork) as? Bool ?? SpotifyWidgetSettings.defaults.showAlbumArtwork
-                , equalizerSensitivity: defaults.object(forKey: Key.equalizerSensitivity) as? Double ?? SpotifyWidgetSettings.defaults.equalizerSensitivity
-                , equalizerSpeed: defaults.object(forKey: Key.equalizerSpeed) as? Double ?? SpotifyWidgetSettings.defaults.equalizerSpeed
-                , equalizerAnimationDuration: defaults.object(forKey: Key.equalizerAnimationDuration) as? Double ?? SpotifyWidgetSettings.defaults.equalizerAnimationDuration
+                showAlbumArtwork: defaults.object(forKey: Key.showAlbumArtwork) as? Bool ?? SpotifyWidgetSettings.defaults.showAlbumArtwork,
+                equalizerSensitivity: defaults.object(forKey: Key.equalizerSensitivity) as? Double ?? SpotifyWidgetSettings.defaults.equalizerSensitivity,
+                equalizerSpeed: defaults.object(forKey: Key.equalizerSpeed) as? Double ?? SpotifyWidgetSettings.defaults.equalizerSpeed,
+                equalizerAnimationDuration: defaults.object(forKey: Key.equalizerAnimationDuration) as? Double ?? SpotifyWidgetSettings.defaults.equalizerAnimationDuration,
+                showOnLaunch: defaults.object(forKey: Key.showOnLaunch) as? Bool ?? SpotifyWidgetSettings.defaults.showOnLaunch,
+                keepControlStrip: defaults.object(forKey: Key.keepControlStrip) as? Bool ?? SpotifyWidgetSettings.defaults.keepControlStrip,
+                equalizerWidth: defaults.object(forKey: Key.equalizerWidth) as? Double ?? SpotifyWidgetSettings.defaults.equalizerWidth,
+                equalizerFullWidth: defaults.object(forKey: Key.equalizerFullWidth) as? Bool ?? SpotifyWidgetSettings.defaults.equalizerFullWidth
             )
         }
         set {
@@ -141,6 +162,10 @@ public final class SpotifyWidgetSettingsStore {
             defaults.set(newValue.equalizerSensitivity, forKey: Key.equalizerSensitivity)
             defaults.set(newValue.equalizerSpeed, forKey: Key.equalizerSpeed)
             defaults.set(newValue.equalizerAnimationDuration, forKey: Key.equalizerAnimationDuration)
+            defaults.set(newValue.showOnLaunch, forKey: Key.showOnLaunch)
+            defaults.set(newValue.keepControlStrip, forKey: Key.keepControlStrip)
+            defaults.set(newValue.equalizerWidth, forKey: Key.equalizerWidth)
+            defaults.set(newValue.equalizerFullWidth, forKey: Key.equalizerFullWidth)
             NotificationCenter.default.post(name: .spotifyWidgetSettingsDidChange, object: newValue)
         }
     }

@@ -7,27 +7,14 @@ let package = Package(
         .macOS(.v11)
     ],
     products: [
-        .library(
-            name: "SpotifPockWidget",
-            type: .dynamic,
-            targets: ["SpotifPockWidget"]
-        )
-    ],
-    dependencies: [
-        .package(url: "https://github.com/pock/pockkit.git", branch: "master")
+        .executable(name: "Spotiw", targets: ["Spotiw"])
     ],
     targets: [
-        .target(
-            name: "SpotifPockWidget",
-            dependencies: [
-                .product(name: "PockKit", package: "pockkit")
-            ],
-            exclude: [
-                "Info.plist",
-                "PockKit.framework"
-            ],
+        .executableTarget(
+            name: "Spotiw",
             linkerSettings: [
-                .linkedFramework("AppKit")
+                .linkedFramework("AppKit"),
+                .linkedFramework("ServiceManagement")
             ]
         )
     ]

@@ -3,13 +3,31 @@ import AppKit
 public class MarqueeLabel: NSView {
     private let textField = NSTextField(labelWithString: "")
     private var animationKey = "marqueeAnimation"
+    private var laidOutSize: (text: CGFloat, bounds: CGSize)?
 
     public var stringValue: String {
         get { textField.stringValue }
         set {
+            // re-setting the same text must not restart the scroll
+            guard newValue != textField.stringValue else { return }
             textField.stringValue = newValue
+            laidOutSize = nil
             needsLayout = true
         }
+    }
+
+    public var font: NSFont? {
+        get { textField.font }
+        set {
+            textField.font = newValue
+            laidOutSize = nil
+            needsLayout = true
+        }
+    }
+
+    public var textColor: NSColor? {
+        get { textField.textColor }
+        set { textField.textColor = newValue }
     }
 
     public override init(frame frameRect: NSRect) {
@@ -30,7 +48,7 @@ public class MarqueeLabel: NSView {
         textField.isBordered = false
         textField.drawsBackground = false
         textField.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        textField.textColor = NSColor.labelColor
+        textField.textColor = NSColor.white
         textField.lineBreakMode = .byClipping
         textField.translatesAutoresizingMaskIntoConstraints = false
         textField.wantsLayer = true
@@ -48,10 +66,17 @@ public class MarqueeLabel: NSView {
             with: NSSize(width: CGFloat.greatestFiniteMagnitude, height: bounds.height),
             options: [.usesLineFragmentOrigin, .usesFontLeading]
         ).size
+        // NSTextField draws with a few points of inner padding
+        let textWidth = ceil(fittingSize.width) + 6
 
-        textField.frame = CGRect(x: 0, y: (bounds.height - fittingSize.height) / 2, width: fittingSize.width, height: fittingSize.height)
+        if let previous = laidOutSize, previous.text == textWidth, previous.bounds == bounds.size {
+            return
+        }
+        laidOutSize = (textWidth, bounds.size)
 
-        if fittingSize.width > bounds.width {
+        textField.frame = CGRect(x: 0, y: (bounds.height - fittingSize.height) / 2, width: textWidth, height: fittingSize.height)
+
+        if textWidth > bounds.width {
             startMarquee()
         } else {
             stopMarquee()
@@ -64,6 +89,7 @@ public class MarqueeLabel: NSView {
             stopMarquee()
             return
         }
+        guard textField.layer?.animation(forKey: animationKey) == nil else { return }
         startMarquee()
     }
 

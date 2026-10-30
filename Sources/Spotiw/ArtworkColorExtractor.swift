@@ -63,9 +63,18 @@ public enum ArtworkColorExtractor {
             let adjustedColor = index % 2 == 0
                 ? baseColor.blended(withFraction: 0.25, of: .white) ?? baseColor
                 : baseColor.blended(withFraction: 0.15, of: .black) ?? baseColor
-            colors.append(adjustedColor)
+            colors.append(visibleOnBlack(adjustedColor))
         }
 
         return colors.isEmpty ? [NSColor.systemBlue] : colors
+    }
+
+    /// The Touch Bar is black, so dark album colors are lifted until they stand out.
+    private static func visibleOnBlack(_ color: NSColor) -> NSColor {
+        guard let rgb = color.usingColorSpace(.deviceRGB) else { return color }
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        rgb.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        guard brightness < 0.6 else { return rgb }
+        return NSColor(deviceHue: hue, saturation: min(saturation, 0.8), brightness: 0.6 + brightness * 0.3, alpha: alpha)
     }
 }

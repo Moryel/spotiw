@@ -1,14 +1,17 @@
 import AppKit
 
 public class EqualizerView: NSView {
-    private let barCount = 7
+    /// follows the view width (about one bar per 7 pt), see `layout()`
+    private var barCount = 7
     private var bars: [CALayer] = []
     private var timer: Timer?
     private var phase: CGFloat = 0
     // smoothing state
     private var currentRatios: [CGFloat] = []
     private var targetRatios: [CGFloat] = []
-    private var currentColors: [NSColor] = []
+    private var currentColors: [RGBA] = []
+    private var targetComponents: [RGBA] = [RGBA(.systemGreen)]
+    private var colorsSettled = false
     /// 0..1 lerp factor per tick (higher = snappier, lower = smoother)
     public var smoothingFactor: CGFloat = 0.22
     /// amplitude multiplier for the bar heights
@@ -38,12 +41,14 @@ public class EqualizerView: NSView {
 
     public var accentColor: NSColor = .systemGreen {
         didSet {
+            paletteDidChange()
             updateBars(animated: false)
         }
     }
 
     public var ambientColors: [NSColor] = [] {
         didSet {
+            paletteDidChange()
             updateBars(animated: false)
         }
     }
@@ -65,10 +70,17 @@ public class EqualizerView: NSView {
     private func setupBars() {
         wantsLayer = true
         layer?.backgroundColor = NSColor.clear.cgColor
+        rebuildBars()
+    }
+
+    private func rebuildBars() {
+        bars.forEach { $0.removeFromSuperlayer() }
+        bars = []
 
         currentRatios = Array(repeating: 0.2, count: barCount)
         targetRatios = Array(repeating: 0.2, count: barCount)
-        currentColors = Array(repeating: accentColor, count: barCount)
+        currentColors = Array(repeating: RGBA(accentColor), count: barCount)
+        colorsSettled = false
 
         for i in 0..<barCount {
             let bar = CALayer()
@@ -84,6 +96,11 @@ public class EqualizerView: NSView {
 
     public override func layout() {
         super.layout()
+        let wanted = max(5, min(160, Int(bounds.width / 7)))
+        if wanted != barCount {
+            barCount = wanted
+            rebuildBars()
+        }
         layoutBarFrames()
     }
 
@@ -96,7 +113,8 @@ public class EqualizerView: NSView {
             let x = CGFloat(index) * (barWidth + gap)
             let idleHeight = idleHeight(for: index)
             bar.cornerRadius = cornerRadius(for: barWidth)
-            bar.frame = CGRect(x: x, y: 0, width: barWidth, height: idleHeight)
+            bar.opacity = opacity(for: index)
+            bar.frame = CGRect(x: x, y: yOrigin(for: idleHeight), width: barWidth, height: idleHeight)
         }
     }
 
@@ -109,16 +127,23 @@ public class EqualizerView: NSView {
     private func scheduleTimer() {
         // base tick 0.06s, scale by 1/speed
         let interval = TimeInterval(0.06 / max(0.1, speed))
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             self.phase += 0.45 * self.speed
             for i in 0..<self.barCount {
+                // random styles pick a new target only once a bar has (nearly) reached the old one,
+                // otherwise the bars just jitter around the average height
+                let reached = abs(self.currentRatios[i] - self.targetRatios[i]) < 0.06
+                guard self.style == .wave || reached else { continue }
                 // apply sensitivity to animated ratio targets
                 let base = self.animatedHeightRatio(for: i)
                 self.targetRatios[i] = min(1.0, base * self.sensitivity)
             }
             self.updateBars(animated: true)
         }
+        // .common keeps the bars moving while the menu bar menu is open
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     private func restartTimerIfNeeded() {
@@ -139,56 +164,61 @@ public class EqualizerView: NSView {
         CATransaction.begin()
         CATransaction.setAnimationDuration(animated ? Double(animationDuration) : 0.0)
 
+        let lerp = smoothingFactor
+        let blendColors = !colorsSettled
+        var largestColorStep: CGFloat = 0
+
         for (index, bar) in bars.enumerated() {
             // determine target ratio
             let newTarget = targetHeightRatio ?? targetRatios[index]
             // smooth current ratio towards target
             let current = currentRatios[index]
-            let lerp = smoothingFactor
             let next = current + (newTarget - current) * lerp
             currentRatios[index] = next
 
             let height = max(bounds.height * 0.14, bounds.height * next)
-            let x = bar.frame.origin.x
-            let y = yOrigin(for: height)
-            bar.frame = CGRect(x: x, y: y, width: bar.frame.width, height: height)
-            bar.cornerRadius = cornerRadius(for: bar.frame.width)
-            bar.opacity = opacity(for: index)
-
-            // color smoothing
-            let targetColor = color(for: index)
-            let prev = currentColors[index]
-
-            func rgbaComponents(_ c: NSColor) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
-                var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-                if let converted = c.usingColorSpace(.deviceRGB) {
-                    converted.getRed(&r, green: &g, blue: &b, alpha: &a)
-                    return (r, g, b, a)
-                }
-                // fallback to accentColor components
-                if let conv2 = accentColor.usingColorSpace(.deviceRGB) {
-                    conv2.getRed(&r, green: &g, blue: &b, alpha: &a)
-                    return (r, g, b, a)
-                }
-                return (0, 0, 0, 1)
+            // with many bars, skip sub-pixel changes
+            if abs(bar.frame.height - height) > 0.25 {
+                bar.frame = CGRect(x: bar.frame.origin.x, y: yOrigin(for: height), width: bar.frame.width, height: height)
             }
 
-            let p = rgbaComponents(prev)
-            let t = rgbaComponents(targetColor)
-            let blended = NSColor(red: p.r + (t.r - p.r) * lerp,
-                                  green: p.g + (t.g - p.g) * lerp,
-                                  blue: p.b + (t.b - p.b) * lerp,
-                                  alpha: p.a + (t.a - p.a) * lerp)
+            // color smoothing, only until the bars have reached the new palette
+            guard blendColors else { continue }
+            let p = currentColors[index]
+            let t = targetComponents[index % targetComponents.count]
+            let blended = RGBA(r: p.r + (t.r - p.r) * lerp,
+                               g: p.g + (t.g - p.g) * lerp,
+                               b: p.b + (t.b - p.b) * lerp,
+                               a: p.a + (t.a - p.a) * lerp)
+            largestColorStep = max(largestColorStep, abs(t.r - p.r), abs(t.g - p.g), abs(t.b - p.b), abs(t.a - p.a))
             currentColors[index] = blended
-            bar.backgroundColor = blended.cgColor
+            bar.backgroundColor = CGColor(red: blended.r, green: blended.g, blue: blended.b, alpha: blended.a)
+        }
+
+        if blendColors && largestColorStep < 0.004 {
+            colorsSettled = true
         }
 
         CATransaction.commit()
     }
 
-    private func color(for index: Int) -> NSColor {
-        guard !ambientColors.isEmpty else { return accentColor }
-        return ambientColors[index % ambientColors.count]
+    private struct RGBA {
+        var r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat
+
+        init(r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
+            self.r = r; self.g = g; self.b = b; self.a = a
+        }
+
+        init(_ color: NSColor) {
+            let rgb = color.usingColorSpace(.deviceRGB) ?? .systemGreen
+            self.init(r: rgb.redComponent, g: rgb.greenComponent, b: rgb.blueComponent, a: rgb.alphaComponent)
+        }
+    }
+
+    private func paletteDidChange() {
+        let palette = ambientColors.isEmpty ? [accentColor] : ambientColors
+        targetComponents = palette.map(RGBA.init)
+        colorsSettled = false
     }
 
     private func idleHeight(for index: Int) -> CGFloat {
@@ -235,7 +265,8 @@ public class EqualizerView: NSView {
     private func opacity(for index: Int) -> Float {
         switch style {
         case .bars:
-            return Float(0.58 + Double(index) * 0.045)
+            // fades in from left to right whatever the bar count
+            return Float(0.58 + 0.27 * Double(index) / Double(max(1, barCount - 1)))
         case .wave:
             return 0.85
         case .dots:

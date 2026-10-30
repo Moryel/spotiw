@@ -62,7 +62,7 @@ case "$MODE" in
         ;;
     release)
         rm -f "$ROOT_DIR/build/Spotiw.zip"
-        ditto -c -k --keepParent "$APP_DIR" "$ROOT_DIR/build/Spotiw.zip"
+        ditto -c -k --norsrc --noextattr --noqtn --keepParent "$APP_DIR" "$ROOT_DIR/build/Spotiw.zip"
         echo "Packed $ROOT_DIR/build/Spotiw.zip"
         ;;
 esac

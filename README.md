@@ -5,6 +5,8 @@ a draggable progress bar and an animated sound bar that takes its colors from th
 
 ![Spotiw on the Touch Bar](images/demo.gif)
 
+**[⬇ Download the latest version](https://github.com/Moryel/spotiw/releases/latest/download/Spotiw.zip)** · Intel and Apple Silicon · macOS 12+
+
 > Spotiw 2.0 is a standalone menu bar app. **Pock is no longer needed.**
 
 ## Why it changed
@@ -87,18 +89,32 @@ Open them from the music note in the menu bar → **Settings…**
 - **Track:** show album art
 - **Touch Bar:** show on launch, keep the volume / brightness strip
 
-## Install
+## Download
 
-Requires a Mac with a Touch Bar, Spotify and the Xcode command line tools.
+**[⬇ Download Spotiw.zip](https://github.com/Moryel/spotiw/releases/latest/download/Spotiw.zip)**
+— works on every MacBook Pro with a Touch Bar (Intel 2016–2020 and Apple Silicon M1/M2),
+macOS 12 Monterey or later, with the Spotify desktop app.
+
+1. Unzip it and drag **Spotiw.app** into **Applications**.
+2. Open it. Spotiw is free and not notarized by Apple, so the first time macOS blocks it:
+   - **macOS 15 and later:** System Settings → Privacy & Security → scroll down → **Open Anyway**.
+   - **macOS 12–14:** right-click Spotiw.app → **Open** → **Open**.
+
+   Or, in Terminal: `xattr -dr com.apple.quarantine /Applications/Spotiw.app`
+3. Allow Spotiw to control Spotify when asked
+   (later: System Settings → Privacy & Security → Automation).
+4. A music note appears in the menu bar and in the Touch Bar's Control Strip.
+   Turn on **Launch at Login** from the menu bar icon to have it start with your Mac.
+
+## Build from source
+
+Requires the Xcode command line tools.
 
 ```sh
-sh Scripts/build-app.sh            # builds build/Spotiw.app
+sh Scripts/build-app.sh            # builds build/Spotiw.app for this Mac
 sh Scripts/build-app.sh install    # also copies it to /Applications and starts it
+sh Scripts/build-app.sh release    # universal (Intel + Apple Silicon) build and build/Spotiw.zip
 ```
-
-On first start macOS asks whether Spotiw may control Spotify — allow it
-(System Settings → Privacy & Security → Automation). Turn on **Launch at Login** from the
-menu bar icon to have it start with your Mac.
 
 Coming from the Pock widget? Remove `Spotiw.pock` from Pock; your settings carry over.
 
